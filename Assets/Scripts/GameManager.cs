@@ -2,27 +2,79 @@
 using System.Collections;
 using System.Collections.Generic;
 using Microsoft.CognitiveServices.Speech;
+using UnityEditor.PackageManager;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class GameManager : MonoBehaviour
 {
-    public Text input;
-    public enum States
+    private const float threshold = 10;
+    public enum State
     {
         PickQuestion,
         WaitingForAnswer,
         ValidateAnswer,
+        Null
     }
     
     private object threadLocker = new object();
     private bool waitingForReco;
     private string currentInput;
     public QuestionDisplay questionDisplay;
-    public States currentState = States.PickQuestion;
+    
+    private State _currentState = State.PickQuestion;
+
+    public State currentState
+    {
+        get => _currentState;
+        set
+        {
+            switch (value)
+            {
+                case State.PickQuestion:
+                    Debug.Log("pickQuestion");
+                    break;
+                case State.WaitingForAnswer:
+                    Debug.Log("waitingforanswer");
+                    GetInput(State.ValidateAnswer);
+                    break;
+                case State.ValidateAnswer:
+                    Debug.Log("validateAnswer");
+                    var closestAnswer= GetClosestAnswer(out var closestDistance);
+                    if (closestDistance > threshold)
+                    {
+                        errorText.gameObject.SetActive(true);
+                        errorText.text = "Didn't get that.";
+                        StartCoroutine(WaitUserRead());
+                    }
+                    else
+                    {
+                        for (var index = 0; index < answers.Count; index++)
+                        {
+                            if (answers[index].text == closestAnswer)
+                            {
+                                answers[index].color = Color.yellow;
+                                Debug.Log(answers[index].text);
+                                break;
+                            }
+                        }
+                    }
+                    break;
+                case State.Null:
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(value), value, null);
+            }
+            _currentState = value;
+        }
+    }
+        
     private int currentQuestion = 0;
-    private float timeToWait = 10;
+    private float timeToWait = 2;
     public GetQuestions getQuestions;
+
+    public List<Text> answers;
+    public Text errorText;
     // Start is called before the first frame update
     void Start()
     {
@@ -34,30 +86,32 @@ public class GameManager : MonoBehaviour
     {
         switch (currentState)
         {
-            case States.PickQuestion:
+            case State.PickQuestion:
                 questionDisplay.DisplayQuestion(getQuestions.Questions[currentQuestion]);
-                currentState = States.WaitingForAnswer;
+                currentState = State.WaitingForAnswer;
                 break;
-            case States.WaitingForAnswer:
+            case State.WaitingForAnswer:
                 // StartCoroutine(WaitForAnswer());
-                ButtonClick();
+                
                 break;
-            case States.ValidateAnswer:
-                Debug.Log("currentInput:" + currentInput);
+            case State.ValidateAnswer:
+                
                 break;
             default:
                 throw new ArgumentOutOfRangeException();
         }
     }
 
-    private IEnumerator WaitForAnswer()
+    
+    
+    private IEnumerator WaitUserRead()
     {
         yield return new WaitForSeconds(timeToWait);
-        currentState = States.ValidateAnswer;
-        currentInput = input.text;
+        currentState = State.WaitingForAnswer;
+        // errorText.gameObject.SetActive(false);
     }
 
-    public async void ButtonClick()
+    public async void GetInput(State nextState = State.Null)
     {
         // Creates an instance of a speech config with specified subscription key and service region.
         // Replace with your own subscription key and service region (e.g., "westus").
@@ -99,20 +153,24 @@ public class GameManager : MonoBehaviour
             {
                 currentInput = newMessage;
                 waitingForReco = false;
-                currentState = States.ValidateAnswer;
+                Debug.Log("lock");
+                if (nextState != State.Null)
+                {
+                    currentState = nextState;
+                }
             }
         }
     }
 
     
-    private string GetClosestAnswer(out float closestDistance)
+    private string GetClosestAnswer(out int closestDistance)
     {
         string correct = getQuestions.Questions[currentQuestion].correct_answer;
-        closestDistance = Utils.LevenshteinDistance(input.text, correct);
+        closestDistance = Utils.LevenshteinDistance(currentInput, correct);
         string closestAnswer = correct;
         foreach (var answer in getQuestions.Questions[currentQuestion].incorrect_answers)
         {
-            float distance = Utils.LevenshteinDistance(input.text, answer);
+            int distance = Utils.LevenshteinDistance(currentInput, answer);
             if (distance < closestDistance)
             {
                 closestAnswer = answer;
