@@ -61,7 +61,7 @@ public class HelloWorld : MonoBehaviour
         lock (threadLocker)
         {
             message = e.Result.Text;
-            Debug.Log("RecognizingHandler: " + message);
+            // Debug.Log("RecognizingHandler: " + message);
         }
     }
 
@@ -70,7 +70,7 @@ public class HelloWorld : MonoBehaviour
         lock (threadLocker)
         {
             message = e.Result.Text;
-            Debug.Log("RecognizedHandler: " + message);
+            // Debug.Log("RecognizedHandler: " + message);
         }
     }
 
@@ -79,7 +79,7 @@ public class HelloWorld : MonoBehaviour
         lock (threadLocker)
         {
             message = e.ErrorDetails.ToString();
-            Debug.Log("CanceledHandler: " + message);
+            // Debug.Log("CanceledHandler: " + message);
         }
     }
 
@@ -91,7 +91,7 @@ public class HelloWorld : MonoBehaviour
 
             if (Microphone.IsRecording(Microphone.devices[0]))
             {
-                Debug.Log("Microphone.End: " + Microphone.devices[0]);
+                // Debug.Log("Microphone.End: " + Microphone.devices[0]);
                 Microphone.End(null);
                 lastSample = 0;
             }
@@ -99,24 +99,25 @@ public class HelloWorld : MonoBehaviour
             lock (threadLocker)
             {
                 recognitionStarted = false;
-                Debug.Log("RecognitionStarted: " + recognitionStarted.ToString());
+                // Debug.Log("RecognitionStarted: " + recognitionStarted.ToString());
             }
         }
         else
         {
             if (!Microphone.IsRecording(Microphone.devices[0]))
             {
-                Debug.Log("Microphone.Start: " + Microphone.devices[0]);
+                // Debug.Log("Microphone.Start: " + Microphone.devices[0]);
                 audioSource.clip = Microphone.Start(Microphone.devices[0], true, 200, 16000);
-                Debug.Log("audioSource.clip channels: " + audioSource.clip.channels);
-                Debug.Log("audioSource.clip frequency: " + audioSource.clip.frequency);
+                // Debug.Log("audioSource.clip channels: " + audioSource.clip.channels);
+                // Debug.Log("audioSource.clip frequency: " + audioSource.clip.frequency);
             }
 
             await recognizer.StartContinuousRecognitionAsync().ConfigureAwait(false);
             lock (threadLocker)
             {
                 recognitionStarted = true;
-                Debug.Log("RecognitionStarted: " + recognitionStarted.ToString());
+                // Debug.Log("RecognitionStarted: " + recognitionStarted.ToString());
+
             }
         }
     }
@@ -125,12 +126,14 @@ public class HelloWorld : MonoBehaviour
     {
         if (outputText == null)
         {
-            UnityEngine.Debug.LogError("outputText property is null! Assign a UI Text element to it.");
+            // UnityEngine.Debug.LogError("outputText property is null! Assign a UI Text element to it.");
         }
         else if (recoButton == null)
         {
             message = "recoButton property is null! Assign a UI Button to it.";
-            UnityEngine.Debug.LogError(message);
+
+            // UnityEngine.Debug.LogError(message);
+
         }
         else
         {
@@ -152,32 +155,33 @@ public class HelloWorld : MonoBehaviour
             micPermissionGranted = true;
             message = "Click button to recognize speech";
 #endif
-            config = SpeechConfig.FromSubscription("df65df3407f1482da419ff9469f74f6d", "westus");
-            pushStream = AudioInputStream.CreatePushStream();
-            audioInput = AudioConfig.FromStreamInput(pushStream);
-            recognizer = new SpeechRecognizer(config, audioInput);
-            recognizer.Recognizing += RecognizingHandler;
-            recognizer.Recognized += RecognizedHandler;
-            recognizer.Canceled += CanceledHandler;
 
-            recoButton.onClick.AddListener(ButtonClick);
-            foreach (var device in Microphone.devices)
-            {
-                Debug.Log("DeviceName: " + device);                
-            }
+            // config = SpeechConfig.FromSubscription("df65df3407f1482da419ff9469f74f6d", "westus");
+            // pushStream = AudioInputStream.CreatePushStream();
+            // audioInput = AudioConfig.FromStreamInput(pushStream);
+            // recognizer = new SpeechRecognizer(config, audioInput);
+            // // recognizer.Recognizing += RecognizingHandler;
+            // // recognizer.Recognized += RecognizedHandler;
+            // // recognizer.Canceled += CanceledHandler;
+            //
+            // recoButton.onClick.AddListener(ButtonClick);
+            // foreach (var device in Microphone.devices)
+            // {
+            //     // Debug.Log("DeviceName: " + device);                
+            // }
             audioSource = GameObject.Find("MyAudioSource").GetComponent<AudioSource>();
         }
 
-        ButtonClick();
+        // ButtonClick();
     }
 
     void Disable()
     {
-        recognizer.Recognizing -= RecognizingHandler;
-        recognizer.Recognized -= RecognizedHandler;
-        recognizer.Canceled -= CanceledHandler;
+        // recognizer.Recognizing -= RecognizingHandler;
+        // recognizer.Recognized -= RecognizedHandler;
+        // recognizer.Canceled -= CanceledHandler;
         pushStream.Close();
-        recognizer.Dispose();
+        // recognizer.Dispose();
     }
 
     void FixedUpdate()
@@ -220,7 +224,7 @@ public class HelloWorld : MonoBehaviour
                 byte[] ba = ConvertAudioClipDataToInt16ByteArray(samples);
                 if (ba.Length != 0)
                 {
-                    Debug.Log("pushStream.Write pos:" + Microphone.GetPosition(Microphone.devices[0]).ToString() + " length: " + ba.Length.ToString());
+                    // Debug.Log("pushStream.Write pos:" + Microphone.GetPosition(Microphone.devices[0]).ToString() + " length: " + ba.Length.ToString());
                     pushStream.Write(ba);
                 }
             }
