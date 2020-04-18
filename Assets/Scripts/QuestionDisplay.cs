@@ -27,6 +27,10 @@ public class QuestionDisplay : MonoBehaviour
         answer2.text = WebUtility.HtmlDecode(answers[1]);
         answer3.text = WebUtility.HtmlDecode(answers[2]);
         answer4.text = WebUtility.HtmlDecode(answers[3]);
+        answer1.color = Color.white;
+        answer2.color = Color.white;
+        answer3.color = Color.white;
+        answer4.color = Color.white;
     }
 
     private List<string> shuffledAnswers(Question q) {

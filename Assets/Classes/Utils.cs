@@ -12,6 +12,8 @@ public static class Utils
     }
     public static int LevenshteinDistance(string s, string t)
     {
+        s = s.ToLower();
+        t = t.ToLower();
         int n = s.Length;
         int m = t.Length;
         int[,] d = new int[n + 1, m + 1];

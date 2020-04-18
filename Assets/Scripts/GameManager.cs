@@ -5,24 +5,36 @@ using Microsoft.CognitiveServices.Speech;
 using UnityEditor.PackageManager;
 using UnityEngine;
 using UnityEngine.UI;
+using Random = UnityEngine.Random;
 
 public class GameManager : MonoBehaviour
 {
-    private const float threshold = 10;
+    private const float threshold = 3;
     public enum State
     {
         PickQuestion,
         WaitingForAnswer,
         ValidateAnswer,
+        CheckForFinalAnswer,
+        ValidateFinalAnswer,
+        GiveVerdictOnAnswer,
         Null
     }
     
     private object threadLocker = new object();
     private bool waitingForReco;
-    private string currentInput;
+    private string currentInput = "ceva";
     public QuestionDisplay questionDisplay;
+    private const string Yes = "Yes.";
+    private const string No = "No.";
+    private const string UnintelligibleInput = "Didn't get that.";
+
+    private const string Fail = "You fail.";
+    private const string Win = "You win.";
     
     private State _currentState = State.PickQuestion;
+    private string currentAnswer;
+    private int IncorrectAnswersCount = 0;
 
     public State currentState
     {
@@ -33,19 +45,42 @@ public class GameManager : MonoBehaviour
             {
                 case State.PickQuestion:
                     Debug.Log("pickQuestion");
+                    if (IncorrectAnswersCount == 3)
+                    {
+                        EndGameMessage.gameObject.SetActive(true);
+                        EndGameMessage.color = Color.red;
+                        EndGameMessage.text = Fail;
+                        // _currentState = State.Null;
+                    }
+                    else if (currentQuestion == getQuestions.Questions.Count)
+                    {
+                        EndGameMessage.gameObject.SetActive(true);
+                        EndGameMessage.text = Win;
+                        // _currentState = State.Null;
+                    }
+                    else
+                    {
+                        _currentState = value;
+                    }
                     break;
                 case State.WaitingForAnswer:
                     Debug.Log("waitingforanswer");
-                    GetInput(State.ValidateAnswer);
+                    waitingForReco = true;
+                    GetInput();
+                    _currentState = value;
                     break;
                 case State.ValidateAnswer:
                     Debug.Log("validateAnswer");
+                    Debug.Log(currentInput);
+                    errorText.gameObject.SetActive(false);
                     var closestAnswer= GetClosestAnswer(out var closestDistance);
+                    currentAnswer = closestAnswer;
                     if (closestDistance > threshold)
                     {
                         errorText.gameObject.SetActive(true);
-                        errorText.text = "Didn't get that.";
-                        StartCoroutine(WaitUserRead());
+                        errorText.text = UnintelligibleInput;
+                        // StartCoroutine(WaitUserRead(State.WaitingForAnswer));
+                        currentState = State.WaitingForAnswer;
                     }
                     else
                     {
@@ -55,17 +90,79 @@ public class GameManager : MonoBehaviour
                             {
                                 answers[index].color = Color.yellow;
                                 Debug.Log(answers[index].text);
-                                break;
+                                // break;
                             }
+                            else
+                            {
+                                answers[index].color = Color.white;
+                            }
+                        }
+
+                        currentState = State.CheckForFinalAnswer;
+                    }
+                    break;
+                case State.CheckForFinalAnswer:
+                    Debug.Log("check final");
+                    errorText.gameObject.SetActive(false);
+                    FinalAnswerCheck.gameObject.SetActive(true);
+                    waitingForReco = true;
+                    GetInput();
+                    _currentState = value;
+                    break;
+                case State.ValidateFinalAnswer:
+                    Debug.Log("validate final answer");
+                    FinalAnswerCheck.gameObject.SetActive(false);
+                    var finalAnswer = GetYesNo(out var minDistance);
+                    if (minDistance > 1)
+                    {
+                        errorText.text = UnintelligibleInput;
+                        currentState = State.CheckForFinalAnswer;
+                        // StartCoroutine(WaitUserRead(State.CheckForFinalAnswer));
+                    }
+                    else
+                    {
+                        if (finalAnswer == No)
+                        {
+                            currentState = State.WaitingForAnswer;
+                        }
+                        else
+                        {
+                            currentState = State.GiveVerdictOnAnswer;
                         }
                     }
                     break;
-                case State.Null:
+                case State.GiveVerdictOnAnswer:
+                    Debug.Log("give verdict");
+                    var correctAnswer = getQuestions.Questions[currentQuestion].correct_answer;
+                    int correctAnswerIndex=0, currentAnswerIndex=1;
+                    for (int i = 0; i < answers.Count; i++)
+                    {
+                        if (answers[i].text == correctAnswer)
+                        {
+                            correctAnswerIndex = i;
+                        }
+                        if (answers[i].text == currentAnswer)
+                        {
+                            currentAnswerIndex= i;
+                        }
+                    }
+                    answers[currentAnswerIndex].color = Color.red;
+                    answers[correctAnswerIndex].color = Color.green;
+                    currentQuestion++;
+                    if (correctAnswerIndex != currentAnswerIndex)
+                    {
+                        IncorrectAnswersCount++;
+                    }
+
+                    _currentState = value;
+                    currentState = State.Null;
                     break;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(value), value, null);
+                case State.Null:
+                    StartCoroutine(WaitUserRead(State.PickQuestion));
+                    break;
+                // default:
+                //     throw new ArgumentOutOfRangeException(nameof(value), value, null);
             }
-            _currentState = value;
         }
     }
         
@@ -73,8 +170,11 @@ public class GameManager : MonoBehaviour
     private float timeToWait = 2;
     public GetQuestions getQuestions;
 
+    
     public List<Text> answers;
     public Text errorText;
+    public Text FinalAnswerCheck;
+    public Text EndGameMessage;
     // Start is called before the first frame update
     void Start()
     {
@@ -84,6 +184,7 @@ public class GameManager : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        Debug.Log(currentState);
         switch (currentState)
         {
             case State.PickQuestion:
@@ -92,26 +193,34 @@ public class GameManager : MonoBehaviour
                 break;
             case State.WaitingForAnswer:
                 // StartCoroutine(WaitForAnswer());
-                
+                if (!waitingForReco)
+                {
+                    currentState = State.ValidateAnswer;
+                }
                 break;
-            case State.ValidateAnswer:
-                
+            // case State.ValidateAnswer:
+            //     
+            //     break;
+            case State.CheckForFinalAnswer:
+                if (!waitingForReco)
+                {
+                    currentState = State.ValidateFinalAnswer;
+                }
                 break;
-            default:
-                throw new ArgumentOutOfRangeException();
+            // default:
+            //     throw new ArgumentOutOfRangeException();
         }
     }
 
     
     
-    private IEnumerator WaitUserRead()
+    private IEnumerator WaitUserRead(State nextState)
     {
         yield return new WaitForSeconds(timeToWait);
-        currentState = State.WaitingForAnswer;
-        // errorText.gameObject.SetActive(false);
+        currentState = nextState;
     }
 
-    public async void GetInput(State nextState = State.Null)
+    public async void GetInput()
     {
         // Creates an instance of a speech config with specified subscription key and service region.
         // Replace with your own subscription key and service region (e.g., "westus").
@@ -131,7 +240,7 @@ public class GameManager : MonoBehaviour
             // Note: Since RecognizeOnceAsync() returns only a single utterance, it is suitable only for single
             // shot recognition like command or query.
             // For long-running multi-utterance recognition, use StartContinuousRecognitionAsync() instead.
-            var result = await recognizer.RecognizeOnceAsync().ConfigureAwait(false);
+            var result = await recognizer.RecognizeOnceAsync();//.ConfigureAwait(false);
 
             // Checks result.
             string newMessage = string.Empty;
@@ -154,10 +263,7 @@ public class GameManager : MonoBehaviour
                 currentInput = newMessage;
                 waitingForReco = false;
                 Debug.Log("lock");
-                if (nextState != State.Null)
-                {
-                    currentState = nextState;
-                }
+                recognizer.Dispose();
             }
         }
     }
@@ -179,5 +285,19 @@ public class GameManager : MonoBehaviour
         }
 
         return closestAnswer;
+    }
+
+    private string GetYesNo(out int minDistance)
+    {
+        var distanceYes = Utils.LevenshteinDistance(currentInput, Yes);
+        var distanceNo = Utils.LevenshteinDistance(currentInput, No);
+        if (distanceYes > distanceNo)
+        {
+            minDistance = distanceNo;
+            return No;
+        }
+
+        minDistance = distanceYes;
+        return Yes;
     }
 }
