@@ -1,0 +1,118 @@
+{
+  "results": [
+    {
+      "category": "Entertainment: Books",
+      "type": "multiple",
+      "difficulty": "medium",
+      "question": "Who wrote the 1967 horror novel &quot;Rosemary&#039;s Baby&quot;?",
+      "correct_answer": "Ira Levin",
+      "incorrect_answers": [
+        "Stephen King",
+        "Robert Bloch",
+        "Mary Shelley"
+      ]
+    },
+    {
+      "category": "History",
+      "type": "multiple",
+      "difficulty": "medium",
+      "question": "Which infamous European traitor was known as &quot;the last person to enter Parliament with honest intentions&quot;?",
+      "correct_answer": "Guy Fawkes",
+      "incorrect_answers": [
+        "Robert Catesby",
+        "Francis Tresham",
+        "Everard Digby"
+      ]
+    },
+    {
+      "category": "Entertainment: Video Games",
+      "type": "multiple",
+      "difficulty": "medium",
+      "question": "What is the name of the final boss in Turok: Dinosaur Hunter?",
+      "correct_answer": "The Campaigner",
+      "incorrect_answers": [
+        "The Primagen",
+        "Oblivion",
+        "Lord Tyrannus"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "boolean",
+      "difficulty": "easy",
+      "question": "In 2010, Twitter and the United States Library of Congress partnered together to archive every tweet by American citizens.",
+      "correct_answer": "True",
+      "incorrect_answers": [
+        "False"
+      ]
+    },
+    {
+      "category": "Entertainment: Film",
+      "type": "multiple",
+      "difficulty": "medium",
+      "question": "What was another suggested name for, the 1985 film, Back to the Future?",
+      "correct_answer": "Spaceman From Pluto",
+      "incorrect_answers": [
+        "Hill Valley Time Travelers",
+        "The Time Travelers",
+        "The Lucky Man"
+      ]
+    },
+    {
+      "category": "History",
+      "type": "boolean",
+      "difficulty": "easy",
+      "question": "The United States of America declared their independence from the British Empire on July 4th, 1776.",
+      "correct_answer": "True",
+      "incorrect_answers": [
+        "False"
+      ]
+    },
+    {
+      "category": "Entertainment: Film",
+      "type": "multiple",
+      "difficulty": "easy",
+      "question": "In the 1995 film &quot;Balto&quot;, who are Steele&#039;s accomplices?",
+      "correct_answer": "Kaltag, Nikki, and Star",
+      "incorrect_answers": [
+        "Dusty, Kirby, and Ralph",
+        "Nuk, Yak, and Sumac",
+        "Jenna, Sylvie, and Dixie"
+      ]
+    },
+    {
+      "category": "Entertainment: Japanese Anime & Manga",
+      "type": "multiple",
+      "difficulty": "hard",
+      "question": "Medaka Kurokami from &quot;Medaka Box&quot; has what abnormality?",
+      "correct_answer": "The End",
+      "incorrect_answers": [
+        "Perfection",
+        "Sandbox",
+        "Fairness"
+      ]
+    },
+    {
+      "category": "Entertainment: Cartoon & Animations",
+      "type": "multiple",
+      "difficulty": "medium",
+      "question": "Adam West was the mayor of which cartoon town?",
+      "correct_answer": "Quahog",
+      "incorrect_answers": [
+        "Springfield",
+        "South Park",
+        "Langley Falls"
+      ]
+    },
+    {
+      "category": "Entertainment: Video Games",
+      "type": "boolean",
+      "difficulty": "medium",
+      "question": "In &quot;Call Of Duty: Zombies&quot;, you can upgrade the &quot;Apothicon Servant&quot; in the &quot;Shadows Of Evil&quot; map.",
+      "correct_answer": "False",
+      "incorrect_answers": [
+        "True"
+      ]
+    }
+  ]
+}
