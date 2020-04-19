@@ -2,7 +2,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using Microsoft.CognitiveServices.Speech;
-using UnityEditor.PackageManager;
 using UnityEngine;
 using UnityEngine.UI;
 using Random = UnityEngine.Random;
@@ -35,6 +34,10 @@ public class GameManager : MonoBehaviour
     private State _currentState = State.PickQuestion;
     private string currentAnswer;
     private int IncorrectAnswersCount = 0;
+    private const int Lives = 3;
+    public Light Light;
+    private const int ColorFlashTime = 3;
+    private Color DefaultColor; 
 
     public State currentState
     {
@@ -45,7 +48,7 @@ public class GameManager : MonoBehaviour
             {
                 case State.PickQuestion:
                     Debug.Log("pickQuestion");
-                    if (IncorrectAnswersCount == 3)
+                    if (IncorrectAnswersCount == Lives)
                     {
                         EndGameMessage.gameObject.SetActive(true);
                         EndGameMessage.color = Color.red;
@@ -152,6 +155,13 @@ public class GameManager : MonoBehaviour
                     if (correctAnswerIndex != currentAnswerIndex)
                     {
                         IncorrectAnswersCount++;
+                        LivesLeft.text = "Lives left: " + (Lives - IncorrectAnswersCount);
+                        StartCoroutine(ChangeLightColor(Color.red));
+                    }
+                    else
+                    {
+                        StartCoroutine(ChangeLightColor(Color.green));
+
                     }
 
                     _currentState = value;
@@ -175,10 +185,14 @@ public class GameManager : MonoBehaviour
     public Text errorText;
     public Text FinalAnswerCheck;
     public Text EndGameMessage;
+
+    public Text LivesLeft;
     // Start is called before the first frame update
     void Start()
     {
+        LivesLeft.text = "Lives left: " + Lives;
         Utils.shuffle(getQuestions.Questions);
+        DefaultColor = Light.color;
     }
 
     // Update is called once per frame
@@ -218,6 +232,13 @@ public class GameManager : MonoBehaviour
     {
         yield return new WaitForSeconds(timeToWait);
         currentState = nextState;
+    }
+
+    private IEnumerator ChangeLightColor(Color newColor)
+    {
+        Light.color = newColor;
+        yield return new WaitForSeconds(ColorFlashTime);
+        Light.color = DefaultColor;
     }
 
     public async void GetInput()
