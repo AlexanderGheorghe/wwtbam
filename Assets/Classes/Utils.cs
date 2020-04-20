@@ -10,6 +10,7 @@ public static class Utils
     {
         list.Sort((a, b)=> Random.Range(-1, 1));
     }
+    
     public static int LevenshteinDistance(string s, string t)
     {
         s = s.ToLower();

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.CognitiveServices.Speech;
 using UnityEngine;
 using UnityEngine.UI;
@@ -8,36 +9,63 @@ using Random = UnityEngine.Random;
 
 public class GameManager : MonoBehaviour
 {
-    private const float threshold = 3;
+    private int threshold = 3;
+
     public enum State
     {
+        WaitingForStart,
+        ProcessStart,
         PickQuestion,
         WaitingForAnswer,
         ValidateAnswer,
         CheckForFinalAnswer,
         ValidateFinalAnswer,
         GiveVerdictOnAnswer,
+        WaitingForLifeline,
         Null
     }
-    
+
     private object threadLocker = new object();
     private bool waitingForReco;
     private string currentInput = "ceva";
     public QuestionDisplay questionDisplay;
     private const string Yes = "Yes.";
     private const string No = "No.";
-    private const string UnintelligibleInput = "Didn't get that.";
+    private const string Help = "Help.";
+    private const string Nevermind = "Nevermind.";
+    private const string UnintelligibleInput = "Didn't get that, please try again.";
 
-    private const string Fail = "You fail.";
+    private const string Fail = "You lose.";
     private const string Win = "You win.";
-    
-    private State _currentState = State.PickQuestion;
+
+    private State _currentState = State.WaitingForStart;
     private string currentAnswer;
     private int IncorrectAnswersCount = 0;
     private const int Lives = 3;
     public Light Light;
     private const int ColorFlashTime = 3;
-    private Color DefaultColor; 
+    private Color DefaultColor;
+    public Canvas GameScreen;
+    public Canvas StartMenu;
+    private List<String> PrizeStrings = new List<String> {
+        "100",
+        "200",
+        "300",
+        "500",
+        "1.000",
+        "2.000",
+        "4.000",
+        "8.000",
+        "16.000",
+        "32.000",
+        "64.000",
+        "125.000",
+        "250.000",
+        "500.000",
+        "1.000.000"
+    };
+
+    public List<Text> PrizeTexts;
 
     public State currentState
     {
@@ -46,6 +74,27 @@ public class GameManager : MonoBehaviour
         {
             switch (value)
             {
+                case State.WaitingForStart:
+                    EndGameMessage.gameObject.SetActive(false);
+                    StartMenu.gameObject.SetActive(true);
+                    GameScreen.gameObject.SetActive(false);
+                    _currentState = value;
+                    waitingForReco = true;
+                    GetInput();
+                    break;
+                case State.ProcessStart:
+                    if (currentInput == "Start.")
+                    {
+                        Reset();
+                        currentState = State.PickQuestion;
+                        StartMenu.gameObject.SetActive(false);
+                        GameScreen.gameObject.SetActive(true);
+                    }
+                    else
+                    {
+                        currentState = State.WaitingForStart;
+                    }
+                    break;
                 case State.PickQuestion:
                     Debug.Log("pickQuestion");
                     if (IncorrectAnswersCount == Lives)
@@ -53,16 +102,24 @@ public class GameManager : MonoBehaviour
                         EndGameMessage.gameObject.SetActive(true);
                         EndGameMessage.color = Color.red;
                         EndGameMessage.text = Fail;
+                        StartCoroutine(WaitUserRead(State.WaitingForStart));
                         // _currentState = State.Null;
                     }
                     else if (currentQuestion == getQuestions.Questions.Count)
                     {
                         EndGameMessage.gameObject.SetActive(true);
                         EndGameMessage.text = Win;
+                        StartCoroutine(WaitUserRead(State.WaitingForStart));
                         // _currentState = State.Null;
                     }
                     else
                     {
+                        if (currentQuestion != 0)
+                        {
+                            PrizeTexts[currentQuestion - 1].color = Color.white;
+                        }
+                        PrizeTexts[currentQuestion].color = Color.green;
+                        SetThreshold();
                         _currentState = value;
                     }
                     break;
@@ -75,7 +132,13 @@ public class GameManager : MonoBehaviour
                 case State.ValidateAnswer:
                     Debug.Log("validateAnswer");
                     Debug.Log(currentInput);
+                    
                     errorText.gameObject.SetActive(false);
+                    if (currentInput == Help)
+                    {
+                        currentState = State.WaitingForLifeline;
+                        break;
+                    }
                     var closestAnswer= GetClosestAnswer(out var closestDistance);
                     currentAnswer = closestAnswer;
                     if (closestDistance > threshold)
@@ -167,6 +230,8 @@ public class GameManager : MonoBehaviour
                     _currentState = value;
                     currentState = State.Null;
                     break;
+                case State.WaitingForLifeline:
+                    break;
                 case State.Null:
                     StartCoroutine(WaitUserRead(State.PickQuestion));
                     break;
@@ -175,7 +240,45 @@ public class GameManager : MonoBehaviour
             }
         }
     }
+
+    private void SetThreshold()
+    {
+        var Question = getQuestions.Questions[currentQuestion];
+        var AllAnswers = Question.incorrect_answers.ToList();
+        AllAnswers.Add(Question.correct_answer);
+        int LongestAnswer = AllAnswers.Aggregate(0, (l, c) => Mathf.Max(l, c.Length));
+        threshold = LongestAnswer / 3;
+    }
+
+    public void ShuffleQuestions()
+    {
+        Utils.shuffle(getQuestions.Questions);
+        var DifficultyDictionary = new Dictionary<string, int>()
+        {
+            {"easy", 0},
+            {"medium", 1},
+            {"hard", 2},
+        };
+        getQuestions.Questions.Sort((a, b) => DifficultyDictionary[a.difficulty] - DifficultyDictionary[b.difficulty]);
+        foreach (var q in getQuestions.Questions)
+        {
+            Debug.Log(q.difficulty + " " + q.question);
+        }
+    }
+
+    private void Reset()
+    {
+        foreach (var text in PrizeTexts)
+        {
+            text.color = Color.white;
+        }
+        LivesLeft.text = "Lives left: " + Lives;
+        ShuffleQuestions();
+        IncorrectAnswersCount = 0;
+        currentQuestion = 0;
         
+    }
+
     private int currentQuestion = 0;
     private float timeToWait = 2;
     public GetQuestions getQuestions;
@@ -190,9 +293,11 @@ public class GameManager : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        LivesLeft.text = "Lives left: " + Lives;
-        Utils.shuffle(getQuestions.Questions);
         DefaultColor = Light.color;
+        for (var i = 0; i < PrizeStrings.Count; i++)
+        {
+            PrizeTexts[i].text = "$" + PrizeStrings[i];
+        }
     }
 
     // Update is called once per frame
@@ -201,6 +306,13 @@ public class GameManager : MonoBehaviour
         Debug.Log(currentState);
         switch (currentState)
         {
+            case State.WaitingForStart:
+                // StartCoroutine(WaitForAnswer());
+                if (!waitingForReco)
+                {
+                    currentState = State.ProcessStart;
+                }
+                break;
             case State.PickQuestion:
                 questionDisplay.DisplayQuestion(getQuestions.Questions[currentQuestion]);
                 currentState = State.WaitingForAnswer;
