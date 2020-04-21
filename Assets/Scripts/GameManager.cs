@@ -14,7 +14,7 @@ public class GameManager : MonoBehaviour
     public enum State
     {
         WaitingForStart,
-        ProcessStart,
+        ValidateStart,
         PickQuestion,
         WaitingForAnswer,
         ValidateAnswer,
@@ -22,6 +22,7 @@ public class GameManager : MonoBehaviour
         ValidateFinalAnswer,
         GiveVerdictOnAnswer,
         WaitingForLifeline,
+        ValidateLifeline,
         Null
     }
 
@@ -32,11 +33,19 @@ public class GameManager : MonoBehaviour
     private const string Yes = "Yes.";
     private const string No = "No.";
     private const string Help = "Help.";
-    private const string Nevermind = "Nevermind.";
+    private const string Nevermind = "Never mind.";
     private const string UnintelligibleInput = "Didn't get that, please try again.";
 
     private const string Fail = "You lose.";
     private const string Win = "You win.";
+    private const string LifelineWaitingText = "Pick one!";
+    private const string LifelineDefaultText = "Say help to activate";
+    private const string LifelineUsedOneText = "Only one lifeline per question allowed.";
+    private const string LifelinesUsedBothText = "You're out of lifelines :(";
+    private int LifelinesUsed;
+    
+    private Color DisabledColor = Color.gray;
+    private Color EnabledColor = Color.white;
 
     private State _currentState = State.WaitingForStart;
     private string currentAnswer;
@@ -66,6 +75,7 @@ public class GameManager : MonoBehaviour
     };
 
     public List<Text> PrizeTexts;
+    private bool UsedALifeline;
 
     public State currentState
     {
@@ -76,19 +86,21 @@ public class GameManager : MonoBehaviour
             {
                 case State.WaitingForStart:
                     EndGameMessage.gameObject.SetActive(false);
+                    LifelinesHelp.gameObject.SetActive(false);
                     StartMenu.gameObject.SetActive(true);
                     GameScreen.gameObject.SetActive(false);
                     _currentState = value;
                     waitingForReco = true;
                     GetInput();
                     break;
-                case State.ProcessStart:
+                case State.ValidateStart:
                     if (currentInput == "Start.")
                     {
                         Reset();
                         currentState = State.PickQuestion;
                         StartMenu.gameObject.SetActive(false);
                         GameScreen.gameObject.SetActive(true);
+                        LifelinesHelp.gameObject.SetActive(true);
                     }
                     else
                     {
@@ -97,6 +109,19 @@ public class GameManager : MonoBehaviour
                     break;
                 case State.PickQuestion:
                     Debug.Log("pickQuestion");
+                    if (LifelinesUsed == 2)
+                    {
+                        LifelinesHelp.text = LifelinesUsedBothText;
+                    }
+                    else
+                    {
+                        LifelinesHelp.text = LifelineDefaultText;
+                    }
+                    UsedALifeline = false;
+                    foreach (var percentage in percentages)
+                    {
+                        percentage.gameObject.SetActive(false);
+                    }
                     if (IncorrectAnswersCount == Lives)
                     {
                         EndGameMessage.gameObject.SetActive(true);
@@ -134,12 +159,13 @@ public class GameManager : MonoBehaviour
                     Debug.Log(currentInput);
                     
                     errorText.gameObject.SetActive(false);
-                    if (currentInput == Help)
+                    if (currentInput == Help && !UsedALifeline && !(LifelinesUsed == 2))
                     {
                         currentState = State.WaitingForLifeline;
                         break;
                     }
                     var closestAnswer= GetClosestAnswer(out var closestDistance);
+                    Debug.Log(closestAnswer);
                     currentAnswer = closestAnswer;
                     if (closestDistance > threshold)
                     {
@@ -189,6 +215,10 @@ public class GameManager : MonoBehaviour
                     {
                         if (finalAnswer == No)
                         {
+                            foreach (var answer in answers)
+                            {
+                                answer.color = Color.white;
+                            }
                             currentState = State.WaitingForAnswer;
                         }
                         else
@@ -231,6 +261,32 @@ public class GameManager : MonoBehaviour
                     currentState = State.Null;
                     break;
                 case State.WaitingForLifeline:
+                    Debug.Log("waitingforlifeline");
+                    LifelinesHelp.text = LifelineWaitingText;
+                    waitingForReco = true;
+                    GetInput();
+                    _currentState = value;
+                    break;
+                case State.ValidateLifeline:
+                    Debug.Log("validate lifeline:" + currentInput);
+                    if ((currentInput == "5050" || currentInput == "5050.") && Lifeline5050.color != DisabledColor)
+                    {
+                        EliminateTwoIncorrectAnswers();
+                        UseLifeline(Lifeline5050);
+                    } else if (currentInput == "Ask the audience." && LifelineAskTheAudience.color != DisabledColor)
+                    {
+                        DisplayAudiencePercentages();
+                        UseLifeline(LifelineAskTheAudience);
+                    }
+                    else if (currentInput == Nevermind)
+                    {
+                        LifelinesHelp.text = LifelineDefaultText;
+                        currentState = State.WaitingForAnswer;
+                    }
+                    else
+                    {
+                        currentState = State.WaitingForLifeline;
+                    }
                     break;
                 case State.Null:
                     StartCoroutine(WaitUserRead(State.PickQuestion));
@@ -241,13 +297,75 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    private void UseLifeline(Text LifelineText)
+    {
+        LifelineText.color = DisabledColor;
+        UsedALifeline = true;
+        LifelinesHelp.text = LifelineUsedOneText;
+        currentState = State.WaitingForAnswer;
+        LifelinesUsed++;
+    }
+    private void DisplayAudiencePercentages()
+    {
+        bool GotItRight = Random.Range(0, 1) <= CorrectPublicAnswerProbability;
+        int sum = 100;
+            List<int> random = new List<int>();
+            int largestPercentage = -1, largestIndex = -1;
+            for (int i = 0; i < answers.Count-1; i++)
+            {
+                random.Add(Random.Range(0, sum));
+                Debug.Log(random[i]);
+                sum -= random[i];
+                if (random[i] > largestPercentage)
+                {
+                    largestPercentage = random[i];
+                    largestIndex = i;
+                }
+            }
+            if (sum > largestPercentage)
+            {
+                largestPercentage = sum;
+                largestIndex = answers.Count - 1;
+            }
+            random.Add(sum);
+            int j = 0;
+            for (int i = 0; i < answers.Count; i++)
+            {
+                percentages[i].gameObject.SetActive(true);
+                if (GotItRight)
+                {
+                    if (answers[i].text == getQuestions.Questions[currentQuestion].correct_answer)
+                    {
+                        percentages[i].text = largestPercentage + "%";
+                    }
+                    else
+                    {
+                        if (j == largestIndex)
+                        {
+                            j++;
+                        }
+
+                        percentages[i].text = random[j++] + "%";
+                    }
+                }
+                else
+                {
+                    percentages[i].text = random[j++] + "%";
+                }
+            }
+        }
+
     private void SetThreshold()
     {
         var Question = getQuestions.Questions[currentQuestion];
         var AllAnswers = Question.incorrect_answers.ToList();
         AllAnswers.Add(Question.correct_answer);
-        int LongestAnswer = AllAnswers.Aggregate(0, (l, c) => Mathf.Max(l, c.Length));
+        int LongestAnswer = AllAnswers.Aggregate(0, (l, c) => Mathf.Min(l, c.Length));
         threshold = LongestAnswer / 3;
+        if (threshold < 2)
+        {
+            threshold = 2;
+        }
     }
 
     public void ShuffleQuestions()
@@ -266,6 +384,18 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    private void EliminateTwoIncorrectAnswers()
+    {
+        var IncorrectAnswers = getQuestions.Questions[currentQuestion].incorrect_answers.ToList();
+        Utils.shuffle(IncorrectAnswers);
+        foreach (var answer in answers)
+        {
+            if (answer.text == IncorrectAnswers[1] || answer.text == IncorrectAnswers[0])
+            {
+                answer.gameObject.SetActive(false);
+            }
+        }
+    }
     private void Reset()
     {
         foreach (var text in PrizeTexts)
@@ -276,7 +406,11 @@ public class GameManager : MonoBehaviour
         ShuffleQuestions();
         IncorrectAnswersCount = 0;
         currentQuestion = 0;
-        
+        LifelinesHelp.text = LifelineDefaultText;
+        Lifeline5050.color = EnabledColor;
+        LifelineAskTheAudience.color = EnabledColor;
+        UsedALifeline = false;
+        LifelinesUsed = 0;
     }
 
     private int currentQuestion = 0;
@@ -285,11 +419,17 @@ public class GameManager : MonoBehaviour
 
     
     public List<Text> answers;
+    public List<Text> percentages;
     public Text errorText;
     public Text FinalAnswerCheck;
     public Text EndGameMessage;
 
+    private const float CorrectPublicAnswerProbability = 0.64f;
+
     public Text LivesLeft;
+    public Text LifelinesHelp;
+    public Text Lifeline5050;
+    public Text LifelineAskTheAudience;
     // Start is called before the first frame update
     void Start()
     {
@@ -310,7 +450,7 @@ public class GameManager : MonoBehaviour
                 // StartCoroutine(WaitForAnswer());
                 if (!waitingForReco)
                 {
-                    currentState = State.ProcessStart;
+                    currentState = State.ValidateStart;
                 }
                 break;
             case State.PickQuestion:
@@ -331,6 +471,12 @@ public class GameManager : MonoBehaviour
                 if (!waitingForReco)
                 {
                     currentState = State.ValidateFinalAnswer;
+                }
+                break;
+            case State.WaitingForLifeline:
+                if (!waitingForReco)
+                {
+                    currentState = State.ValidateLifeline;
                 }
                 break;
             // default:
@@ -395,7 +541,6 @@ public class GameManager : MonoBehaviour
             {
                 currentInput = newMessage;
                 waitingForReco = false;
-                Debug.Log("lock");
                 recognizer.Dispose();
             }
         }

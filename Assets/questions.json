@@ -121,27 +121,28 @@
       ]
     },
     {
-      "category": "Entertainment: Video Games",
+      "category": "History",
       "type": "multiple",
       "difficulty": "hard",
-      "question": "Which of these characters in &quot;Undertale&quot; can the player NOT go on a date with?",
-      "correct_answer": "Toriel",
+      "question": "What did the first vending machines in the early 1880&#039;s dispense?",
+      "correct_answer": "Post cards",
       "incorrect_answers": [
-        "Papyrus",
-        "Undyne",
-        "Alphys"
+        "Alcohol",
+        "Cigarettes",
+        "Sodas "
       ]
-    },
+    }
+    ,
     {
-      "category": "Animals",
+      "category": "General Knowledge",
       "type": "multiple",
       "difficulty": "hard",
-      "question": "What scientific family does the Aardwolf belong to?",
-      "correct_answer": "Hyaenidae",
+      "question": "Which of the following languages does NOT use gender as a part of its grammar?",
+      "correct_answer": "Turkish",
       "incorrect_answers": [
-        "Canidae",
-        "Felidae",
-        "Eupleridae"
+        "German",
+        "Danish",
+        "Polish"
       ]
     },
     {

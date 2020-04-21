@@ -21,6 +21,11 @@ public class QuestionDisplay : MonoBehaviour
     // Start is called before the first frame update
     public void DisplayQuestion(Question q)
     {
+        for (int i = 0; i < q.incorrect_answers.Count; i++)
+        {
+            q.incorrect_answers[i] = WebUtility.HtmlDecode(q.incorrect_answers[i]);
+        }
+        q.correct_answer = WebUtility.HtmlDecode(q.correct_answer);
         question.text = WebUtility.HtmlDecode(q.question);
         var answers = shuffledAnswers(q);
         answer1.text = WebUtility.HtmlDecode(answers[0]);
@@ -31,6 +36,10 @@ public class QuestionDisplay : MonoBehaviour
         answer2.color = Color.white;
         answer3.color = Color.white;
         answer4.color = Color.white;
+        answer1.gameObject.SetActive(true);
+        answer2.gameObject.SetActive(true);
+        answer3.gameObject.SetActive(true);
+        answer4.gameObject.SetActive(true);
     }
 
     private List<string> shuffledAnswers(Question q) {
